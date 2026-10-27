@@ -1,12 +1,15 @@
 import requests
 import time
+import truststore
+from database import is_deal_seen, save_deal
 
+#Use the operating system's certificate store so HTTPS works behind antivirus TLS scanning (e.g. Avast).
+truststore.inject_into_ssl()
 
 watch_list = ["jasmine rice", "protein powder", "creatine", ]
 
 def search_flipp(query):
-    url = "https://cdn-gateflipp.flippback.com/bf/flipp/items/search?locale=en-ca&postal_code=E3B1X9&sid=&q=jasmine%20rice"
-    
+    url = "https://cdn-gateflipp.flippback.com/bf/flipp/items/search"    
     params = {"locale":"en-ca",
             "postal_code": "E3B1X9",
             "q":query}
@@ -22,9 +25,16 @@ def search_flipp(query):
     for item in data["items"]:
 
         original = item['original_price'] if item['original_price'] else "not listed"
+
         deal = item['sale_story'] if item['sale_story'] else "flyer special"
-        print(f"store: {item['merchant_name']}", f"name: {item['name']}", f"current price: {item['current_price']}", 
+
+        if (is_deal_seen(item['flyer_item_id'])):
+            continue
+        else :
+            print(f"store: {item['merchant_name']}", f"name: {item['name']}", f"current price: {item['current_price']}", 
               f"original price: {original}", f"deal: {deal}")
+            save_deal(item['flyer_item_id'], item['name'], item['merchant_name'], item['current_price'])
+       
 
 
 for i in watch_list:
